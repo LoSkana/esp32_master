@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href='https://fonts.googleapis.com/css?family=Black Ops One' rel='stylesheet'>
+<style>
+html, body {
+    width: 100%;
+    margin: 0 auto;
+    background: black;
+    color: white;
+    font-family: 'Black Ops One';
+}
+#container {
+    width: 95;
+}
+.cont {
+    width: 31%;
+    float: left;
+    margin: 1em;
+    text-align: center;
+    border: 2px solid #556B2F;
+    padding: 0.5em;
+    color: #556B2F;
+}
+.cont img {
+    width: 100%;
+}
+.cont .overlay {  
+  font-size: 22px;
+  text-align: center;
+  margin: 0.5em auto;
+}
+.cont .overlay td {
+    width: 33%;
+}
+.offline {
+    color: #8B0000 !important;
+}
+</style>
+</head>
+<body>
+
+<div id="Info">
+Debug info
+<p>Subnet: <label id="show-subnet"></label></p>
+</div>
+
+<div id="container"></div>
+
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+<script>
+    
+var reg = {};
+var subn = null;
+    
+function info(data) {
+    console.log(JSON.stringify(data));
+}
+
+function debug(data) {
+    alert(JSON.stringify(data));
+}
+
+if (!String.prototype.format) {
+  String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) { 
+      return typeof args[number] != 'undefined'
+        ? args[number]
+        : match
+      ;
+    });
+  };
+}
+
+function check() {
+    setTimeout(check, 3000);    
+    $.get("/check/").done(function( data ) {
+        subn = data.subnet;
+        $("#show-subnet").text(subn);
+        
+        var now = Date.now();
+        
+        for (var num in reg) {
+            reg[num]['active'] = false;
+        }
+        
+        for (num of data.st) {     
+            if ( ! ( $( "#cont-" + num ).length ) ) {            
+                var ip = "http://{0}{1}:81/stream".format(subn.substring(0, subn.length - 1), num);
+                var cnt = "<div id='cont-{0}' class='cont'><table class='overlay'><tr><td>Cam: {0}</td><td></td><td>Status: <label class='status'></label></td></tr></table><img class='stream' src='{1}' /></div>".format(num, ip);
+                // info(ip);
+                // info(cnt);
+                $('#container').prepend(cnt);
+            }
+            setOnline(num, true);           
+            // get dict 
+            if (num in reg) 
+                d = reg[num];
+            else
+                d = {};
+            // put info 
+            d['last'] = now;
+            d['active'] = true;
+            // set dict
+            reg[num] = d;
+        }
+        
+        for (var num in reg) {
+            var d = reg[num];
+            if ((d['active'])) continue;            
+            setOnline(num, false);
+        }        
+        
+        
+    });
+}
+
+$(function() {
+  setTimeout(check, 0);   
+});
+
+function setOnline(num, v) {
+    var k = '#cont-' + num;
+    var st = 'Online';
+    if (!v) st = 'Offline';
+    $(k + ' .status').text(st);
+    
+    if (v) { $(k).removeClass("offline");}
+    else {$(k).addClass("offline");}
+}
+
+</script>
+
+</body></html>
