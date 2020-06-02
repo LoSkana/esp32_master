@@ -49,7 +49,7 @@ Debug info
 <div id="container"></div>
 
 
-<script src="{% static "jquery-3.5.1.min.js" %}"></script>
+<script src='{% static "jquery-3.5.1.min.js" %}'></script>
 
 <script>
     
@@ -89,14 +89,15 @@ function check() {
         }
         
         for (num of data.st) {     
-            if ( ! ( $( "#cont-" + num ).length ) ) {            
-                var ip = "http://{0}{1}:81/stream".format(subn.substring(0, subn.length - 1), num);
+            var ip = "http://{0}{1}:81/stream".format(subn.substring(0, subn.length - 1), num);
+            if ( ! ( $( "#cont-" + num ).length ) ) {                            
                 var cnt = "<div id='cont-{0}' class='cont'><table class='overlay'><tr><td>Cam: {0}</td><td></td><td>Status: <label class='status'></label></td></tr></table><img class='stream' src='{1}' /></div>".format(num, ip);
                 // info(ip);
                 // info(cnt);
                 $('#container').prepend(cnt);
             }
             setOnline(num, true);           
+            $( "#cont-" + num + " .stream").attr("src", ip);
             // get dict 
             if (num in reg) 
                 d = reg[num];
@@ -107,6 +108,7 @@ function check() {
             d['active'] = true;
             // set dict
             reg[num] = d;
+            console.log(num);            
         }
         
         for (var num in reg) {

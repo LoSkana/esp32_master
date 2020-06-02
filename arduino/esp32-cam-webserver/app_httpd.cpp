@@ -17,10 +17,10 @@
 #include "img_converters.h"
 #include "Arduino.h"
 
-#define debug false
-
 #include "camera_index_ov2640.h"
 #include "camera_index_ov3660.h"
+
+#define debug false
 
 // Function+Globals needed for led and Lamp levels
 void flashLED(int flashtime); 
@@ -69,6 +69,7 @@ static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %
 static ra_filter_t ra_filter;
 httpd_handle_t stream_httpd = NULL;
 httpd_handle_t camera_httpd = NULL;
+httpd_handle_t check_httpd = NULL;
 
 static mtmn_config_t mtmn_config = {0};
 static int8_t detection_enabled = 0;
@@ -615,6 +616,11 @@ static esp_err_t status_handler(httpd_req_t *req){
     return httpd_resp_send(req, json_response, strlen(json_response));
 }
 
+static esp_err_t check_handler(httpd_req_t *req){
+    const char resp[] = "OK";
+    return httpd_resp_send(req, resp, strlen(resp));
+}
+
 static esp_err_t index_handler(httpd_req_t *req){
     flashLED(75);  // a little feedback to user
     delay(75);
@@ -628,7 +634,12 @@ static esp_err_t index_handler(httpd_req_t *req){
     return httpd_resp_send(req, (const char *)index_ov2640_html, index_ov2640_html_len);
 }
 
+bool started = false;
+
 void startCameraServer(){
+
+    if (started) return;
+  
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     httpd_uri_t index_uri = {
@@ -666,6 +677,14 @@ void startCameraServer(){
         .user_ctx  = NULL
     };
 
+   httpd_uri_t check_uri = {
+        .uri       = "/",
+        .method    = HTTP_GET,
+        .handler   = check_handler,
+        .user_ctx  = NULL
+    };
+    
+
 
     ra_filter_init(&ra_filter, 20);
     
@@ -683,7 +702,7 @@ void startCameraServer(){
     mtmn_config.o_threshold.nms = 0.7;
     mtmn_config.o_threshold.candidate_number = 1;
     
-    face_id_init(&id_list, FACE_ID_SAVE_NUMBER, ENROLL_CONFIRM_TIMES);
+    // face_id_init(&id_list, FACE_ID_SAVE_NUMBER, ENROLL_CONFIRM_TIMES);
     
     Serial.printf("Starting web server on port: '%d'\n", config.server_port);
     if (httpd_start(&camera_httpd, &config) == ESP_OK) {
@@ -699,4 +718,13 @@ void startCameraServer(){
     if (httpd_start(&stream_httpd, &config) == ESP_OK) {
         httpd_register_uri_handler(stream_httpd, &stream_uri);
     }
+
+    config.server_port += 1;
+    config.ctrl_port += 1;
+    Serial.printf("Starting check server on port: '%d'\n", config.server_port);
+    if (httpd_start(&check_httpd, &config) == ESP_OK) {
+        httpd_register_uri_handler(check_httpd, &check_uri);
+    }    
+
+    started = true;
 }

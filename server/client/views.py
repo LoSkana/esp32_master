@@ -19,10 +19,10 @@ def get_ip():
     
 def check_ip(subnet, num):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(2)  #100 millisecond Timeout
+    sock.settimeout(1)  #100 millisecond Timeout
     ip = subnet[:-1] + str(num)
     # print(ip)
-    result = sock.connect_ex((ip,80))    
+    result = sock.connect_ex((ip,82))    
     cache.set('c' + str(num), result)
       
 def start_check():

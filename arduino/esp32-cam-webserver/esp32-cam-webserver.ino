@@ -1,6 +1,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 
+
 /* This sketch is a extension/expansion/reork of the 'official' ESP32 Camera example
  *  sketch from Expressif:
  *  https://github.com/espressif/arduino-esp32/tree/master/libraries/ESP32/examples/Camera/CameraWebServer
@@ -36,8 +37,8 @@
   // I keep my settings in a seperate header file
   #include "myconfig.h"
 #else
-  const char* ssid = "****";
-  const char* password = "*****";
+  const char* ssid = "*****";
+  const char* password = "****";
 #endif
 
 // A Name for the Camera. (can be set in myconfig.h)
@@ -119,8 +120,8 @@ void setup() {
     config.jpeg_quality = 10;
     config.fb_count = 2;
   } else {
-    config.frame_size = FRAMESIZE_SVGA;
-    config.jpeg_quality = 12;
+    config.frame_size = FRAMESIZE_VGA;
+    config.jpeg_quality = 10;
     config.fb_count = 1;
   }
 
@@ -144,36 +145,61 @@ void setup() {
     s->set_saturation(s, -2);//lower the saturation
   }
   //drop down frame size for higher initial frame rate
-  s->set_framesize(s, FRAMESIZE_SVGA);
+  s->set_framesize(s, FRAMESIZE_QVGA);
 
 #if defined(CAMERA_MODEL_M5STACK_WIDE)
   s->set_vflip(s, 1);
   s->set_hmirror(s, 1);
 #endif
 
+  flashLED(400);
+  delay(100);
+}
+
+// Notification LED 
+void flashLED(int flashtime)
+{
+  ledcWrite(lampChannel, 2);
+#ifdef LED_PIN                    // If we have it; flash it.
+  digitalWrite(LED_PIN, LED_ON);  // On at full power.
+  delay(flashtime);               // delay
+  digitalWrite(LED_PIN, LED_OFF); // turn Off
+#endif
+  ledcWrite(lampChannel, 0);
+  return;                         // No notifcation LED, do nothing, no delay
+} 
+
+
+void loop() {
+  delay(1000);
+
+  if (WiFi.status() == WL_CONNECTED) return;
+
   // Feedback that hardware init is complete and we are now attempting to connect
   Serial.println("");
   Serial.print("Connecting to Wifi Netowrk: ");
-  Serial.println(ssid);
-  flashLED(400);
-  delay(100);
+  Serial.println(ssid);  
 
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(250);  // Wait for Wifi to connect. If this fails wifi the code basically hangs here.
-                 // - It would be good to do something else here as a future enhancement.
-                 //   (eg: go to a captive AP config portal to configure the wifi)
+  int cnt = 0;
+
+  while (WiFi.status() != WL_CONNECTED && cnt < 40) {
+    Serial.print(".");
+    delay(250);  
+    cnt++;
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println(" can't connect!");
+    return;
   }
 
   // feedback that we are connected
   Serial.println("WiFi connected");
   Serial.println("");
-  flashLED(200);
+  flashLED(400);
   delay(100);
-  flashLED(200);
-  delay(100);
-  flashLED(200);
 
   // Start the Stream server, and the handler processes for the Web UI.
   startCameraServer();
@@ -181,24 +207,7 @@ void setup() {
   Serial.print("Camera Ready!  Use 'http://");
   Serial.print(WiFi.localIP());
   Serial.println("' to connect");
-}
 
-// Notification LED 
-void flashLED(int flashtime)
-{
-#ifdef LED_PIN                    // If we have it; flash it.
-  digitalWrite(LED_PIN, LED_ON);  // On at full power.
-  delay(flashtime);               // delay
-  digitalWrite(LED_PIN, LED_OFF); // turn Off
-#else
-  return;                         // No notifcation LED, do nothing, no delay
-#endif
-} 
-
-
-void loop() {
-  // Just loop forever.
-  // The stream and URI handler processes initiated by the startCameraServer() call at the
-  // end of setup() will handle the camera and UI processing from now on.
-  delay(10000);
+  flashLED(400);
+  delay(100);       
 }
